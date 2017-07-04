@@ -21,7 +21,8 @@ import requests
 import ssl
 import sys
 import urllib
-import urlparse
+from urllib import parse as urlparse
+from urllib.parse import quote
 import webbrowser
 
 from pyVim import connect
@@ -38,9 +39,11 @@ else:
     # Handle target environment that doesn't support HTTPS verification
     ssl._create_default_https_context = _create_unverified_https_context
 
+
 def err(msg):
     sys.stderr.write(msg + '\n')
     sys.exit(1)
+
 
 def parse(url):
     p = urlparse.urlparse(url)
@@ -65,6 +68,7 @@ def parse(url):
         pwd = getpass.getpass()
     return p.username, pwd, p.hostname, port, query
 
+
 def vsphere_url(vm, host, args):
     # Generates console URL for vSphere versions prior 6.0
     ticket = vm.AcquireTicket('mks')
@@ -74,8 +78,11 @@ def vsphere_url(vm, host, args):
         ticket.sslThumbprint)
     base_url = "http://rgerganov.github.io/noVNC/5"
     url = "{0}/vnc_auto.html?host={1}&port={2}&path={3}".format(base_url,
-                                args.mhost, args.mport, urllib.quote(path))
+                                                                args.mhost,
+                                                                args.mport,
+                                                                urllib.quote(path))
     return url
+
 
 def vsphere6_url(vm, host):
     # Generates console URL for vSphere 6
@@ -83,20 +90,24 @@ def vsphere6_url(vm, host):
     vm_host = ticket.host if ticket.host else host
     path = "ticket/" + ticket.ticket
     base_url = "https://rgerganov.github.io/noVNC/6"
-    url = "{0}/vnc_auto.html?host={1}&path={2}".format(base_url, vm_host, urllib.quote(path))
+    url = "{0}/vnc_auto.html?host={1}&path={2}".format(base_url,
+                                                       vm_host, quote(path))
     return url
+
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("url",
-                    help="URL to VM (e.g. 'mks://user:pass@vchost/?name=foo')")
+                        help="URL to VM \
+                        (e.g. 'mks://user:pass@vchost/?name=foo')")
     parser.add_argument("-mhost", help="MKS proxy host (default 'localhost')",
-                    default='localhost')
+                        default='localhost')
     parser.add_argument("-mport", help="MKS proxy port (default 6090)",
-                    type=int, default=6090)
+                        type=int, default=6090)
     args = parser.parse_args()
 
     user, pwd, host, port, query = parse(args.url)
+
     si = connect.SmartConnect(host=host, user=user, pwd=pwd, port=port)
     atexit.register(connect.Disconnect, si)
 
